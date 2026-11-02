@@ -1,0 +1,182 @@
+import pytest
+from unittest.mock import Mock
+from ..order_tracker import OrderTracker
+
+# --- Fixtures for Unit Tests ---
+
+@pytest.fixture
+def mock_storage():
+    """
+    Provides a mock storage object for tests.
+    This mock will be configured to simulate various storage behaviors.
+    """
+    mock = Mock()
+    # By default, mock get_order to return None (no order found)
+    mock.get_order.return_value = None
+    # By default, mock get_all_orders to return an empty dict
+    mock.get_all_orders.return_value = {}
+    return mock
+
+@pytest.fixture
+def order_tracker(mock_storage):
+    """
+    Provides an OrderTracker instance initialized with the mock_storage.
+    """
+    return OrderTracker(mock_storage)
+
+# --- Tests for OrderTracker ---
+
+
+def test_add_order_success(order_tracker, mock_storage):
+    order = order_tracker.add_order(
+        "ORD001", "Laptop", 1, "CUST001"
+    )
+
+    assert order["order_id"] == "ORD001"
+    assert order["item_name"] == "Laptop"
+    assert order["quantity"] == 1
+    assert order["customer_id"] == "CUST001"
+    assert order["status"] == "pending"
+
+    mock_storage.save_order.assert_called_once_with("ORD001", order)
+
+
+def test_add_order_duplicate_id(order_tracker, mock_storage):
+    mock_storage.get_order.return_value = {
+        "order_id": "ORD001",
+        "item_name": "Laptop",
+        "quantity": 1,
+        "customer_id": "CUST001",
+        "status": "pending"
+    }
+
+    with pytest.raises(ValueError):
+        order_tracker.add_order(
+            "ORD001", "Mobile", 1, "CUST002"
+        )
+
+
+def test_add_order_invalid_quantity(order_tracker):
+    with pytest.raises(ValueError):
+        order_tracker.add_order(
+            "ORD001", "Laptop", 0, "CUST001"
+        )
+
+
+def test_get_order_by_id(order_tracker, mock_storage):
+    expected_order = {
+        "order_id": "ORD001",
+        "item_name": "Laptop",
+        "quantity": 1,
+        "customer_id": "CUST001",
+        "status": "pending"
+    }
+
+    mock_storage.get_order.return_value = expected_order
+
+    result = order_tracker.get_order_by_id("ORD001")
+
+    assert result == expected_order
+    mock_storage.get_order.assert_called_once_with("ORD001")
+
+
+def test_update_order_status(order_tracker, mock_storage):
+    existing_order = {
+        "order_id": "ORD001",
+        "item_name": "Laptop",
+        "quantity": 1,
+        "customer_id": "CUST001",
+        "status": "pending"
+    }
+
+    mock_storage.get_order.return_value = existing_order
+
+    result = order_tracker.update_order_status("ORD001", "shipped")
+
+    assert result["status"] == "shipped"
+    mock_storage.save_order.assert_called_once_with("ORD001", result)
+
+
+def test_update_order_nonexistent_id(order_tracker, mock_storage):
+    mock_storage.get_order.return_value = None
+
+    with pytest.raises(ValueError):
+        order_tracker.update_order_status("UNKNOWN", "shipped")
+
+
+def test_list_all_orders(order_tracker, mock_storage):
+    orders = {
+        "ORD001": {
+            "order_id": "ORD001",
+            "item_name": "Laptop",
+            "quantity": 1,
+            "customer_id": "CUST001",
+            "status": "pending"
+        },
+        "ORD002": {
+            "order_id": "ORD002",
+            "item_name": "Mobile",
+            "quantity": 1,
+            "customer_id": "CUST002",
+            "status": "shipped"
+        }
+    }
+
+    mock_storage.get_all_orders.return_value = orders
+
+    result = order_tracker.list_all_orders()
+
+    assert len(result) == 2
+    assert result[0]["order_id"] == "ORD001"
+    assert result[1]["order_id"] == "ORD002"
+
+
+def test_list_orders_by_status(order_tracker, mock_storage):
+    orders = {
+        "ORD001": {
+            "order_id": "ORD001",
+            "item_name": "Laptop",
+            "quantity": 1,
+            "customer_id": "CUST001",
+            "status": "pending"
+        },
+        "ORD002": {
+            "order_id": "ORD002",
+            "item_name": "Mobile",
+            "quantity": 1,
+            "customer_id": "CUST002",
+            "status": "shipped"
+        }
+    }
+
+    mock_storage.get_all_orders.return_value = orders
+
+    result = order_tracker.list_orders_by_status("shipped")
+
+    assert len(result) == 1
+    assert result[0]["order_id"] == "ORD002"
+def test_delete_order_success(order_tracker, mock_storage):
+    existing_order = {
+        "order_id": "ORD001",
+        "item_name": "Laptop",
+        "quantity": 1,
+        "customer_id": "CUST001",
+        "status": "pending"
+    }
+
+    mock_storage.get_order.return_value = existing_order
+
+    result = order_tracker.delete_order("ORD001")
+
+    assert result == existing_order
+    mock_storage.get_order.assert_called_once_with("ORD001")
+    mock_storage.delete_order.assert_called_once_with("ORD001")
+
+
+def test_delete_order_nonexistent_id(order_tracker, mock_storage):
+    mock_storage.get_order.return_value = None
+
+    with pytest.raises(ValueError, match="not found"):
+        order_tracker.delete_order("UNKNOWN")
+
+    mock_storage.delete_order.assert_not_called()

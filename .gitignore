@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.envrc
+
+# Test files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local database
+backend/orders.db
+
+# IDE settings
+.vscode/
+
+# Logs
+*.log
