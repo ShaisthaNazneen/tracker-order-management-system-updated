@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, send_from_directory
 from backend.order_tracker import OrderTracker
 from backend.sqlite_storage import SQLiteStorage
@@ -39,8 +38,8 @@ def add_order_api():
             order_tracker.get_order_by_id(data.get('order_id'))
         ), 201
 
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
 
 
 # Get an order by ID
@@ -68,8 +67,8 @@ def update_order_status_api(order_id):
         )
         return jsonify(order), 200
 
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 404
 
 
 # List all orders or filter by status
@@ -83,6 +82,9 @@ def list_orders_api():
         orders = order_tracker.list_all_orders()
 
     return jsonify(orders), 200
+
+
+# Delete an order
 @app.route('/api/orders/<string:order_id>', methods=['DELETE'])
 def delete_order(order_id):
     try:
@@ -99,4 +101,3 @@ def delete_order(order_id):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True)
-

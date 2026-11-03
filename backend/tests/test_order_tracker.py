@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import Mock
 from ..order_tracker import OrderTracker
 
+
 # --- Fixtures for Unit Tests ---
 
 @pytest.fixture
@@ -17,12 +18,14 @@ def mock_storage():
     mock.get_all_orders.return_value = {}
     return mock
 
+
 @pytest.fixture
 def order_tracker(mock_storage):
     """
     Provides an OrderTracker instance initialized with the mock_storage.
     """
     return OrderTracker(mock_storage)
+
 
 # --- Tests for OrderTracker ---
 
@@ -78,6 +81,15 @@ def test_get_order_by_id(order_tracker, mock_storage):
 
     assert result == expected_order
     mock_storage.get_order.assert_called_once_with("ORD001")
+
+
+def test_get_order_by_id_not_found(order_tracker, mock_storage):
+    mock_storage.get_order.return_value = None
+
+    result = order_tracker.get_order_by_id("UNKNOWN")
+
+    assert result is None
+    mock_storage.get_order.assert_called_once_with("UNKNOWN")
 
 
 def test_update_order_status(order_tracker, mock_storage):
@@ -155,6 +167,8 @@ def test_list_orders_by_status(order_tracker, mock_storage):
 
     assert len(result) == 1
     assert result[0]["order_id"] == "ORD002"
+
+
 def test_delete_order_success(order_tracker, mock_storage):
     existing_order = {
         "order_id": "ORD001",

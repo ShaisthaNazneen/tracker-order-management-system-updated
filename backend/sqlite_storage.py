@@ -1,4 +1,3 @@
-
 import sqlite3
 
 
@@ -76,6 +75,7 @@ class SQLiteStorage:
     def clear(self):
         with self.get_connection() as connection:
             connection.execute("DELETE FROM orders")
+
     def delete_order(self, order_id):
         with self.get_connection() as connection:
             connection.execute(
